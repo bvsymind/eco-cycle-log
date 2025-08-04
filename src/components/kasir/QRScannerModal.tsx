@@ -2,15 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import jsQR from "jsqr";
 
-// Import jsQR library - it's available in the environment
-// Note: In a real React app, you would install it via npm: npm install jsqr
-// But for this artifact environment, we'll use it as if it's available
-declare global {
-  interface Window {
-    jsQR: any;
-  }
-}
 
 interface QRScannerModalProps {
   isOpen: boolean;
@@ -38,8 +31,8 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
 
         // Set timeout for loading
         const timeoutId = setTimeout(() => {
-          setError("Timeout loading QR scanner library. Menggunakan fallback mode.");
-          setJsQRLoaded(true); // Enable fallback mode
+          setError("Timeout loading QR scanner library. Silakan input ID secara manual.");
+          setJsQRLoaded(true); // Still enable camera
         }, 10000); // 10 second timeout
 
         const script = document.createElement('script');
@@ -53,22 +46,22 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
             setJsQRLoaded(true);
             setError(""); // Clear any previous errors
           } else {
-            setError("Library loaded but jsQR not available. Menggunakan fallback mode.");
+            setError("Library loaded but jsQR not available. Silakan input ID secara manual.");
             setJsQRLoaded(true);
           }
         };
         
         script.onerror = () => {
           clearTimeout(timeoutId);
-          setError("Gagal memuat library QR scanner. Menggunakan fallback mode.");
-          setJsQRLoaded(true); // Enable fallback mode
+          setError("Gagal memuat library QR scanner. Silakan input ID secara manual.");
+          setJsQRLoaded(true); // Still enable camera for manual verification
         };
         
         document.head.appendChild(script);
         
       } catch (err) {
         console.error("Error loading jsQR:", err);
-        setError("Error loading QR scanner. Menggunakan fallback mode.");
+        setError("Error loading QR scanner. Silakan input ID secara manual.");
         setJsQRLoaded(true);
       }
     };
@@ -138,7 +131,7 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
-
+    
     if (!context) return;
 
     // Set canvas size to match video
@@ -169,34 +162,12 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
           } catch (err) {
             console.error("Error in QR detection:", err);
           }
-        } else {
-          // Fallback mode - simple pattern detection for demo
-          // This is just for demonstration when jsQR fails to load
-          const result = detectQRCodeFallback(imageData);
-          if (result) {
-            console.log("Fallback QR detected:", result);
-            onScan(result);
-            handleClose();
-          }
         }
       }
     }, 300);
   };
 
-  // Fallback QR detection for when jsQR library fails to load
-  const detectQRCodeFallback = (imageData: ImageData): string | null => {
-    // Simple fallback - detect based on user input or manual entry
-    // In real scenario, you might want to show manual input option
-    // For now, simulate detection after some attempts for demo
-    
-    // This is just for demo - remove in production
-    if (Math.random() > 0.98) { // Very low chance for demo
-      const mockCustomerIds = ["CUS001", "CUS002", "CUS003", "CUS004", "CUS005"];
-      return mockCustomerIds[Math.floor(Math.random() * mockCustomerIds.length)];
-    }
-    
-    return null;
-  };
+
 
   const handleClose = () => {
     stopCamera();
@@ -232,7 +203,7 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
                 <Button 
                   onClick={() => {
                     setJsQRLoaded(true);
-                    setError("Loading dilewati. Scanner akan menggunakan mode fallback.");
+                    setError("Loading dilewati. QR scanner mungkin tidak berfungsi optimal.");
                   }} 
                   className="mt-4"
                   variant="outline"
@@ -241,15 +212,18 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
                   Lewati Loading
                 </Button>
               </div>
-            ) : error ? (
+            ) : error && !window.jsQR ? (
               <div className="text-center p-8">
-                <p className="text-destructive text-sm">{error}</p>
+                <p className="text-destructive text-sm mb-4">{error}</p>
+                <p className="text-muted-foreground text-sm mb-4">
+                  QR Scanner tidak dapat dimuat. Silakan tutup modal ini dan input ID nasabah secara manual.
+                </p>
                 <Button 
-                  onClick={startCamera} 
-                  className="mt-4"
+                  onClick={handleClose} 
+                  className="mt-2"
                   variant="outline"
                 >
-                  Coba Lagi
+                  Tutup & Input Manual
                 </Button>
               </div>
             ) : (
@@ -275,9 +249,15 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
                   </div>
                 </div>
 
-                {isScanning && (
+                {isScanning && window.jsQR && (
                   <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
                     Scanning...
+                  </div>
+                )}
+                
+                {isScanning && !window.jsQR && (
+                  <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                    QR Library not loaded
                   </div>
                 )}
                 
@@ -291,7 +271,10 @@ export function QRScannerModal({ isOpen, onClose, onScan }: QRScannerModalProps)
 
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
-                Arahkan kamera ke QR code untuk scan ID nasabah
+                {window.jsQR ? 
+                  "Arahkan kamera ke QR code untuk scan ID nasabah" :
+                  "QR Scanner tidak tersedia. Silakan tutup dan input ID secara manual."
+                }
               </p>
             </div>
 
