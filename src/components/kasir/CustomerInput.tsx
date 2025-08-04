@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { mockNasabah, type Nasabah } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { QRScannerModal } from "./QRScannerModal";
 
 interface CustomerInputProps {
   onCustomerSelect: (customer: Nasabah | null) => void;
@@ -14,6 +15,16 @@ interface CustomerInputProps {
 export function CustomerInput({ onCustomerSelect, selectedCustomer }: CustomerInputProps) {
   const [customerId, setCustomerId] = useState("");
   const [isChecking, setIsChecking] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+
+  const handleQRScan = (scannedId: string) => {
+    setCustomerId(scannedId);
+    // Auto check customer after QR scan
+    setTimeout(() => {
+      const customer = mockNasabah.find(n => n.id_nasabah === scannedId.trim());
+      onCustomerSelect(customer || null);
+    }, 100);
+  };
 
   const handleCheckCustomer = () => {
     if (!customerId.trim()) return;
@@ -56,6 +67,7 @@ export function CustomerInput({ onCustomerSelect, selectedCustomer }: CustomerIn
             variant="outline"
             size="icon"
             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            onClick={() => setShowQRScanner(true)}
           >
             <QrCode className="h-4 w-4" />
           </Button>
@@ -104,6 +116,12 @@ export function CustomerInput({ onCustomerSelect, selectedCustomer }: CustomerIn
           </div>
         )}
       </div>
+
+      <QRScannerModal
+        isOpen={showQRScanner}
+        onClose={() => setShowQRScanner(false)}
+        onScan={handleQRScan}
+      />
     </Card>
   );
 }
