@@ -1,7 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatRupiah } from "@/data/mockData";
+import { formatRupiah } from "@/services/firebase";
 
 export interface TransactionItem {
   id: string;
@@ -16,13 +16,15 @@ interface TransactionSummaryProps {
   onRemoveItem: (itemId: string) => void;
   onSaveTransaction: () => void;
   disabled?: boolean;
+  isSaving?: boolean;
 }
 
 export function TransactionSummary({ 
   items, 
   onRemoveItem, 
   onSaveTransaction,
-  disabled 
+  disabled,
+  isSaving 
 }: TransactionSummaryProps) {
   const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
   const totalWeight = items.reduce((sum, item) => sum + item.berat_kg, 0);
@@ -62,6 +64,7 @@ export function TransactionSummary({
                     size="icon"
                     onClick={() => onRemoveItem(item.id)}
                     className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    disabled={isSaving}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -87,10 +90,17 @@ export function TransactionSummary({
 
           <Button
             onClick={onSaveTransaction}
-            disabled={disabled || items.length === 0}
+            disabled={disabled || items.length === 0 || isSaving}
             className="w-full mt-4 bg-gradient-primary hover:bg-primary-glow text-lg py-6"
           >
-            Simpan Transaksi
+            {isSaving ? (
+              <>
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2" />
+                Menyimpan...
+              </>
+            ) : (
+              "Simpan Transaksi"
+            )}
           </Button>
         </>
       )}
