@@ -4,11 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { AddWasteTypeModal } from "./AddWasteTypeModal";
+import { EditWasteTypeModal } from "./EditWasteTypeModal";
 import { mockJenisSampah, formatRupiah } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
 
 export function SampahPage() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingWasteType, setEditingWasteType] = useState<any>(null);
   const [wasteTypes, setWasteTypes] = useState(mockJenisSampah);
   const { toast } = useToast();
 
@@ -20,11 +23,20 @@ export function SampahPage() {
     });
   };
 
-  const handleEdit = (id: string) => {
+  const handleEdit = (wasteType: any) => {
+    setEditingWasteType(wasteType);
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = (updatedWasteType: any) => {
+    setWasteTypes(prev => prev.map(w => 
+      w.id === updatedWasteType.id ? updatedWasteType : w
+    ));
     toast({
-      title: "Fitur Edit",
-      description: "Fitur edit sedang dalam pengembangan"
+      title: "Berhasil",
+      description: "Jenis sampah berhasil diperbarui"
     });
+    setShowEditModal(false);
   };
 
   const handleDelete = (id: string) => {
@@ -35,15 +47,25 @@ export function SampahPage() {
     });
   };
 
-  return (
+return (
     <div className="container mx-auto px-4 pb-20">
       <div className="py-6 space-y-6">
         <div className="grid gap-4">
           {wasteTypes.map((wasteType) => (
             <Card key={wasteType.id} className="p-4 bg-gradient-card border-0 shadow-card">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package className="h-8 w-8 text-white" />
+                <div className="w-16 h-16 bg-gradient-primary rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {wasteType.foto_url && wasteType.foto_url !== "/placeholder-waste.jpg" ? (
+                    <img 
+                      src={wasteType.foto_url} 
+                      alt={wasteType.nama} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-primary">
+                      <Package className="h-8 w-8 text-white" />
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex-1 min-w-0">
@@ -70,7 +92,7 @@ export function SampahPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => handleEdit(wasteType.id)}
+                    onClick={() => handleEdit(wasteType)}
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -99,6 +121,13 @@ export function SampahPage() {
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddWasteType}
+        />
+        
+        <EditWasteTypeModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={handleUpdate}
+          wasteType={editingWasteType}
         />
       </div>
     </div>

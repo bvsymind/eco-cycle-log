@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 // Pastikan Input benar-benar digunakan di JSX
@@ -7,13 +7,19 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { resizeImage } from "@/lib/imageUtils";
 
-interface AddWasteTypeModalProps {
+export interface EditWasteTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (wasteType: any) => void;
+  onUpdate: (updatedWasteType: any) => void;
+  wasteType: any;
 }
 
-export function AddWasteTypeModal({ isOpen, onClose, onAdd }: AddWasteTypeModalProps) {
+export function EditWasteTypeModal({ 
+  isOpen, 
+  onClose, 
+  onUpdate,
+  wasteType 
+}: EditWasteTypeModalProps) {
   const [formData, setFormData] = useState({
     nama: "",
     harga_kg: ""
@@ -21,6 +27,17 @@ export function AddWasteTypeModal({ isOpen, onClose, onAdd }: AddWasteTypeModalP
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Isi form dengan data saat modal dibuka
+  useEffect(() => {
+    if (wasteType) {
+      setFormData({
+        nama: wasteType.nama,
+        harga_kg: wasteType.harga_kg.toString()
+      });
+      setImagePreview(wasteType.foto_url);
+    }
+  }, [wasteType]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,23 +89,18 @@ export function AddWasteTypeModal({ isOpen, onClose, onAdd }: AddWasteTypeModalP
       return;
     }
 
-    const newWasteType = {
-      id: Date.now().toString(),
+    const updatedWasteType = {
+      ...wasteType,
       nama: formData.nama.trim(),
       harga_kg: hargaNum,
-      foto_url: imagePreview || "/placeholder-waste.jpg",
-      created_at: new Date()
+      foto_url: imagePreview || wasteType.foto_url,
     };
 
-    onAdd(newWasteType);
-    setFormData({ nama: "", harga_kg: "" });
-    setImagePreview(null);
+    onUpdate(updatedWasteType);
     onClose();
   };
 
   const handleClose = () => {
-    setFormData({ nama: "", harga_kg: "" });
-    setImagePreview(null);
     onClose();
   };
 
@@ -100,13 +112,13 @@ export function AddWasteTypeModal({ isOpen, onClose, onAdd }: AddWasteTypeModalP
 
   if (!isOpen) return null;
 
-return (
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <Card className="w-full max-w-md bg-card animate-slide-up">
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">
-              Tambah Jenis Sampah
+              Edit Jenis Sampah
             </h3>
             <Button
               type="button"
@@ -198,7 +210,7 @@ return (
                 type="submit"
                 className="flex-1 bg-primary hover:bg-primary-glow"
               >
-                Simpan
+                Simpan Perubahan
               </Button>
             </div>
           </div>

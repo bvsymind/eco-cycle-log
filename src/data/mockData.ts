@@ -1,4 +1,10 @@
 // Mock data untuk Bank Sampah Digital
+import botolPlastik from '../images/botolPlastik.png';
+import kardus from '../images/kardus.jpg';
+import kertas from '../images/kertas.jpg';
+import kaleng from '../images/kaleng.jpg';
+import botolKaca from '../images/botolKaca.jpg';
+import plastikKemasan from '../images/plastikKemasan.jpg';
 
 export interface Nasabah {
   id_nasabah: string;
@@ -72,42 +78,42 @@ export const mockJenisSampah: JenisSampah[] = [
     id: "1",
     nama: "Botol Plastik",
     harga_kg: 3000,
-    foto_url: "/placeholder-bottle.jpg",
+    foto_url: botolPlastik,
     created_at: new Date('2024-01-01')
   },
   {
     id: "2", 
     nama: "Kardus",
     harga_kg: 2000,
-    foto_url: "/placeholder-cardboard.jpg",
+    foto_url: kardus,
     created_at: new Date('2024-01-01')
   },
   {
     id: "3",
     nama: "Kertas Putih",
     harga_kg: 1500,
-    foto_url: "/placeholder-paper.jpg",
+    foto_url: kertas,
     created_at: new Date('2024-01-01')
   },
   {
     id: "4",
     nama: "Kaleng Aluminium",
     harga_kg: 7000,
-    foto_url: "/placeholder-aluminum.jpg",
+    foto_url: kaleng,
     created_at: new Date('2024-01-01')
   },
   {
     id: "5",
     nama: "Kaca/Botol Kaca",
     harga_kg: 1000,
-    foto_url: "/placeholder-glass.jpg",
+    foto_url: botolKaca,
     created_at: new Date('2024-01-01')
   },
   {
     id: "6",
     nama: "Plastik Kemasan",
     harga_kg: 2500,
-    foto_url: "/placeholder-plastic.jpg",
+    foto_url: plastikKemasan,
     created_at: new Date('2024-01-01')
   }
 ];
