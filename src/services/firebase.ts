@@ -101,6 +101,33 @@ export interface Transaksi {
   processed_by?: string;
 }
 
+// Helper functions - TAMBAHKAN INI
+export const formatRupiah = (amount: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
+};
+
+export const formatDate = (date: Date): string => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
+
+export const formatDateOnly = (date: Date): string => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short', 
+    year: 'numeric'
+  }).format(date);
+};
+
 // Admin Services
 export const adminService = {
   // Get admin by UID
@@ -142,7 +169,7 @@ export const adminService = {
   }
 };
 
-// Nasabah Services (unchanged but for completeness)
+// Nasabah Services
 export const nasabahService = {
   // Get all nasabah
   async getAll(): Promise<Nasabah[]> {
@@ -223,7 +250,7 @@ export const nasabahService = {
   }
 };
 
-// Jenis Sampah Services (unchanged)
+// Jenis Sampah Services
 export const jenisSampahService = {
   // Get all active jenis sampah
   async getAll(): Promise<JenisSampah[]> {
@@ -297,14 +324,78 @@ export const transaksiService = {
     })) as Transaksi[];
   },
 
-  // Add new transaksi
-  async add(transaksi: Omit<Transaksi, 'id' | 'created_at'>, processedBy?: string): Promise<string> {
-    const docRef = await addDoc(collection(db, 'transaksi'), {
+  // Add new transaksi (setor)
+  async addSetor(transaksi: Omit<Transaksi, 'id' | 'created_at'>, processedBy?: string): Promise<string> {
+    const batch = writeBatch(db);
+    
+    // Add transaction
+    const transaksiRef = doc(collection(db, 'transaksi'));
+    batch.set(transaksiRef, {
       ...transaksi,
       timestamp: Timestamp.fromDate(transaksi.timestamp),
       processed_by: processedBy,
       created_at: Timestamp.now()
     });
-    return docRef.id;
+
+    // Update nasabah saldo
+    const nasabah = await nasabahService.getByIdNasabah(transaksi.id_nasabah);
+    if (nasabah && nasabah.id) {
+      const nasabahRef = doc(db, 'nasabah', nasabah.id);
+      batch.update(nasabahRef, {
+        saldo: nasabah.saldo + transaksi.total_harga,
+        updated_at: Timestamp.now()
+      });
+    }
+
+    await batch.commit();
+    return transaksiRef.id;
+  },
+
+  // Add new transaksi (tarik)
+  async addTarik(id_nasabah: string, nama_nasabah: string, amount: number, processedBy?: string): Promise<string> {
+    const batch = writeBatch(db);
+    
+    // Add transaction
+    const transaksiRef = doc(collection(db, 'transaksi'));
+    batch.set(transaksiRef, {
+      id_nasabah,
+      nama_nasabah,
+      timestamp: Timestamp.now(),
+      tipe: 'tarik',
+      total_harga: -amount,
+      total_berat_kg: 0,
+      items: [],
+      processed_by: processedBy,
+      created_at: Timestamp.now()
+    });
+
+    // Update nasabah saldo
+    const nasabah = await nasabahService.getByIdNasabah(id_nasabah);
+    if (nasabah && nasabah.id) {
+      const nasabahRef = doc(db, 'nasabah', nasabah.id);
+      batch.update(nasabahRef, {
+        saldo: nasabah.saldo - amount,
+        updated_at: Timestamp.now()
+      });
+    }
+
+    await batch.commit();
+    return transaksiRef.id;
+  }
+};
+
+// Storage Services for images
+export const storageService = {
+  // Upload image
+  async uploadImage(file: File, path: string): Promise<string> {
+    const imageRef = ref(storage, path);
+    const snapshot = await uploadBytes(imageRef, file);
+    return await getDownloadURL(snapshot.ref);
+  },
+
+  // Delete image
+  async deleteImage(url: string): Promise<void> {
+    const imageRef = ref(storage, url);
+    await deleteObject(imageRef);
   }
 };

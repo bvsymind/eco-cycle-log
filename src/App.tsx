@@ -5,7 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { KasirPage } from './components/kasir/KasirPage';
+import { HomePage } from './pages/HomePage';
 import { NasabahPage } from './components/nasabah/NasabahPage';
 import { SampahPage } from './components/sampah/SampahPage';
 import { TarikPage } from './components/tarik/TarikPage';
@@ -24,7 +24,7 @@ function App() {
             {/* Protected routes */}
             <Route path="/" element={
               <ProtectedRoute>
-                <KasirPage />
+                <HomePage />
               </ProtectedRoute>
             } />
             

@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
 
 interface HeaderProps {
   title: string;
@@ -20,22 +19,13 @@ interface HeaderProps {
 export function Header({ title }: HeaderProps) {
   const { adminData, logout } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleLogout = async () => {
     const result = await logout();
     if (result.success) {
-      toast({
-        title: "Logout berhasil",
-        description: "Anda telah keluar dari sistem",
-      });
       navigate('/login');
     } else {
-      toast({
-        title: "Logout gagal",
-        description: result.error || "Terjadi kesalahan saat logout",
-        variant: "destructive"
-      });
+      console.error('Logout failed:', result.error);
     }
   };
 
