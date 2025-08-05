@@ -8,7 +8,7 @@ import { EditWasteTypeModal } from "./EditWasteTypeModal";
 import { jenisSampahService, type JenisSampah, formatRupiah } from "@/services/firebase";
 import { useToast } from "@/hooks/use-toast";
 
-// 1. Impor komponen AlertDialog yang dibutuhkan
+// Impor komponen AlertDialog yang dibutuhkan
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,7 +137,36 @@ export function SampahPage() {
   };
 
   if (loading) {
-    // ... (Skeleton UI tidak berubah)
+    return (
+      <div className="container mx-auto px-4 pb-20">
+        <div className="py-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="h-6 bg-muted rounded w-32 animate-pulse"></div>
+            <Button disabled>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+          <div className="grid gap-4">
+            {[...Array(5)].map((_, i) => (
+              <Card key={i} className="p-4 animate-pulse">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-muted rounded-lg"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded w-32"></div>
+                    <div className="h-3 bg-muted rounded w-24"></div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="h-8 w-8 bg-muted rounded"></div>
+                    <div className="h-8 w-8 bg-muted rounded"></div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -216,7 +245,7 @@ export function SampahPage() {
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     
-                    {/* 2. Bungkus Tombol Hapus dengan AlertDialog */}
+                    {/* Bungkus Tombol Hapus dengan AlertDialog */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -238,7 +267,6 @@ export function SampahPage() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Batal</AlertDialogCancel>
-                          {/* 3. Panggil handleDelete dari Tombol Aksi Dialog */}
                           <AlertDialogAction onClick={() => handleDelete(wasteType)}>
                             Ya, Nonaktifkan
                           </AlertDialogAction>
