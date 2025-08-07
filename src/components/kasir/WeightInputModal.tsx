@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { type JenisSampah, formatRupiah } from "@/data/mockData";
+import { type JenisSampah, formatRupiah } from "@/services/firebase";
 
 interface WeightInputModalProps {
   isOpen: boolean;
