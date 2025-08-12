@@ -63,8 +63,8 @@ export function RiwayatPage() {
     }
   };
 
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(transaction => {
+  const filteredTransactionsForDisplay = useMemo(() => {
+    const filtered = transactions.filter(transaction => {
       if (startDate) {
         const transactionDate = transaction.timestamp.toISOString().split('T')[0];
         if (transactionDate < startDate) return false;
@@ -78,31 +78,22 @@ export function RiwayatPage() {
       }
       return true;
     });
+    return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   }, [transactions, startDate, endDate, selectedCustomer]);
 
   const summary = useMemo(() => {
-    const totalSetoran = filteredTransactions
+    const totalSetoran = filteredTransactionsForDisplay
       .filter(t => t.tipe === 'setor')
       .reduce((sum, t) => sum + (Number(t.total_berat_kg) || 0), 0);
     
-    const totalSaldo = filteredTransactions
+    const totalSaldo = filteredTransactionsForDisplay
       .reduce((sum, t) => sum + (Number(t.total_harga) || 0), 0);
 
     return { totalSetoran, totalSaldo };
-  }, [filteredTransactions]);
-
-  const getTransactionDescription = (transaction: Transaksi) => {
-    if (transaction.tipe === 'tarik') {
-      return "Penarikan Saldo";
-    }
-    if (!transaction.items || transaction.items.length === 0) {
-        return "Setor: Tidak ada detail item";
-    }
-    return `Setor: ${transaction.items.map(item => item.nama_sampah).join(', ')}`;
-  };
+  }, [filteredTransactionsForDisplay]);
 
   const handleExport = () => {
-    if (filteredTransactions.length === 0) {
+    if (filteredTransactionsForDisplay.length === 0) {
       toast({
         variant: "destructive",
         title: "Tidak Ada Data",
@@ -114,32 +105,70 @@ export function RiwayatPage() {
     setIsExporting(true);
 
     try {
-      const dataToExport = filteredTransactions.map(trx => ({
-        'Tanggal': new Date(trx.timestamp).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }),
-        'Nama Nasabah': trx.nama_nasabah,
-        'Tipe Transaksi': trx.tipe === 'setor' ? 'Setoran' : 'Penarikan',
-        'Deskripsi': getTransactionDescription(trx),
-        'Berat (kg)': trx.tipe === 'setor' ? (Number(trx.total_berat_kg) || 0) : '-',
-        'Total (Rp)': Number(trx.total_harga) || 0,
-      }));
+      const transactionsForExport = [...filteredTransactionsForDisplay].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      
+      const dataToExport: any[] = [];
+      
+      transactionsForExport.forEach(trx => {
+        dataToExport.push({
+          'Tanggal': new Date(trx.timestamp).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }),
+          'Nama Nasabah': trx.nama_nasabah,
+          'Jenis Sampah / Deskripsi': trx.tipe === 'setor' ? '--- RINCIAN SETORAN ---' : 'Penarikan Saldo',
+          'Berat (kg)': '',
+          'Harga/kg (Rp)': '',
+          'Subtotal (Rp)': ''
+        });
+
+        if (trx.tipe === 'setor' && trx.items) {
+          trx.items.forEach(item => {
+            dataToExport.push({
+              'Tanggal': '',
+              'Nama Nasabah': '',
+              'Jenis Sampah / Deskripsi': item.nama_sampah,
+              'Berat (kg)': Number(item.berat_kg) || 0,
+              'Harga/kg (Rp)': Number(item.harga_kg) || 0,
+              'Subtotal (Rp)': Number(item.subtotal) || 0
+            });
+          });
+        }
+        
+        dataToExport.push({
+          'Tanggal': '',
+          'Nama Nasabah': '',
+          'Jenis Sampah / Deskripsi': 'TOTAL TRANSAKSI',
+          'Berat (kg)': trx.tipe === 'setor' ? (Number(trx.total_berat_kg) || 0) : '',
+          'Harga/kg (Rp)': '',
+          'Subtotal (Rp)': Number(trx.total_harga) || 0
+        });
+
+        dataToExport.push({}); 
+      });
+
+      dataToExport.push({});
+      dataToExport.push({
+        'Tanggal': 'GRAND TOTAL BERAT (SETORAN)',
+        'Berat (kg)': summary.totalSetoran
+      });
+      dataToExport.push({
+        'Tanggal': 'GRAND TOTAL NILAI TRANSAKSI',
+        'Subtotal (Rp)': summary.totalSaldo
+      });
 
       const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-
-      const objectMaxLength = Object.keys(dataToExport[0]).map(key => key.length);
-      const wscols = objectMaxLength.map((w, i) => ({
-        wch: Math.max(w, ...dataToExport.map(obj => (obj[Object.keys(obj)[i]]?.toString() ?? "").length)) + 2,
-      }));
-      worksheet["!cols"] = wscols;
-
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Transaksi");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Transaksi Rinci");
 
-      const fileName = `Riwayat_Transaksi_${new Date().toISOString().split('T')[0]}.xlsx`;
+      worksheet["!cols"] = [
+        { wch: 25 }, { wch: 25 }, { wch: 30 }, 
+        { wch: 15 }, { wch: 15 }, { wch: 15 }
+      ];
+
+      const fileName = `Riwayat_Rinci_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, fileName);
       
       toast({
         title: "Export Berhasil",
-        description: `${filteredTransactions.length} baris data telah diekspor.`,
+        description: `Riwayat rinci telah diekspor.`,
       });
 
     } catch (error) {
@@ -155,13 +184,7 @@ export function RiwayatPage() {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 pb-20">
-        <div className="py-6 space-y-6">
-          {/* Skeleton UI */}
-        </div>
-      </div>
-    );
+    return <div className="container mx-auto px-4 pb-20"><div className="py-6">Memuat data...</div></div>;
   }
 
   return (
@@ -261,60 +284,69 @@ export function RiwayatPage() {
 
         <Card className="border-0 shadow-card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
-                  <th className="text-left p-4 font-semibold">Tanggal</th>
-                  <th className="text-left p-4 font-semibold">Nasabah</th>
-                  <th className="text-left p-4 font-semibold">Deskripsi</th>
-                  <th className="text-right p-4 font-semibold">Berat</th>
-                  <th className="text-right p-4 font-semibold">Total</th>
+                  <th className="text-left p-3 font-semibold w-1/4">Tanggal & Nasabah</th>
+                  <th className="text-left p-3 font-semibold w-2/4">Rincian Sampah</th>
+                  <th className="text-right p-3 font-semibold w-1/4">Berat</th>
+                  <th className="text-right p-3 font-semibold w-1/4">Subtotal</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredTransactions.length === 0 ? (
+              {filteredTransactionsForDisplay.length === 0 ? (
+                <tbody>
                   <tr>
-                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
                       {transactions.length === 0 ? "Belum ada data transaksi" : "Tidak ada data yang sesuai dengan filter"}
                     </td>
                   </tr>
-                ) : (
-                  filteredTransactions.map((transaction) => (
-                    <tr key={transaction.id} className="border-b hover:bg-muted/50">
-                      <td className="p-4">
+                </tbody>
+              ) : (
+                filteredTransactionsForDisplay.map((trx) => (
+                  <tbody key={trx.id} className="border-b last:border-b-0">
+                    <tr className="bg-muted/30">
+                      <td className="p-3 font-semibold align-top">
                         <div>
-                          <p className="font-medium">{formatDateOnly(transaction.timestamp)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {transaction.timestamp.toLocaleTimeString('id-ID', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
+                          <p>{formatDateOnly(trx.timestamp)}</p>
+                          <p className="text-xs text-muted-foreground font-normal">
+                            {trx.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </td>
-                      <td className="p-4 font-medium">{transaction.nama_nasabah}</td>
-                      <td className="p-4">
-                        <p className="text-sm">{getTransactionDescription(transaction)}</p>
+                      <td colSpan={3} className="p-3 font-semibold align-top">{trx.nama_nasabah}</td>
+                    </tr>
+                    {trx.tipe === 'setor' && trx.items?.map((item, index) => (
+                      <tr key={index} className="hover:bg-muted/50">
+                        <td></td>
+                        <td className="py-2 pl-3">
+                          <p className="font-medium">{item.nama_sampah}</p>
+                          <p className="text-xs text-muted-foreground">{formatRupiah(Number(item.harga_kg) || 0)}/kg</p>
+                        </td>
+                        {/* PERBAIKAN: Tambahkan kelas p-3 di sini */}
+                        <td className="py-2 px-3 text-right">{(Number(item.berat_kg) || 0).toFixed(1)} kg</td>
+                        <td className="py-2 px-3 text-right">{formatRupiah(Number(item.subtotal) || 0)}</td>
+                      </tr>
+                    ))}
+                    {trx.tipe === 'tarik' && (
+                      <tr className="hover:bg-muted/50">
+                        <td></td>
+                        <td colSpan={2} className="py-2 pl-3 italic text-muted-foreground">Penarikan Saldo</td>
+                        {/* PERBAIKAN: Tambahkan kelas p-3 di sini */}
+                        <td className="py-2 px-3 text-right text-destructive font-semibold">{formatRupiah(Number(trx.total_harga) || 0)}</td>
+                      </tr>
+                    )}
+                    <tr className="bg-muted/30 font-semibold">
+                      <td colSpan={2} className="p-3 text-right">Total Transaksi</td>
+                      <td className="p-3 text-right">
+                        {trx.tipe === 'setor' ? `${(Number(trx.total_berat_kg) || 0).toFixed(1)} kg` : '-'}
                       </td>
-                      <td className="p-4 text-right">
-                        {transaction.tipe === 'setor' 
-                          ? `${(Number(transaction.total_berat_kg) || 0).toFixed(1)} kg`
-                          : '-'
-                        }
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className={`font-semibold ${
-                          transaction.tipe === 'setor' 
-                            ? 'text-success' 
-                            : 'text-destructive'
-                        }`}>
-                          {formatRupiah(Number(transaction.total_harga) || 0)}
-                        </span>
+                      <td className={`p-3 text-right ${trx.tipe === 'setor' ? 'text-success' : 'text-destructive'}`}>
+                        {formatRupiah(Number(trx.total_harga) || 0)}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
+                  </tbody>
+                ))
+              )}
             </table>
           </div>
         </Card>

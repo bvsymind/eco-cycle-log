@@ -247,7 +247,7 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="text-center">
+          {/* <div className="text-center">
             <p className="text-sm text-muted-foreground">
               Belum punya akun?{' '}
               <Link 
@@ -257,7 +257,7 @@ export function LoginPage() {
                 Daftar di sini
               </Link>
             </p>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

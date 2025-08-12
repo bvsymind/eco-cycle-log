@@ -401,7 +401,7 @@ export const transaksiService = {
   // ... (fungsi getAll tidak berubah)
   // Get all transaksi
   async getAll(startDate?: Date, endDate?: Date, id_nasabah?: string): Promise<Transaksi[]> {
-    let q = query(collection(db, 'transaksi'), orderBy('timestamp', 'desc'));
+    let q = query(collection(db, 'transaksi'), orderBy('timestamp', 'asc'));
     
     if (startDate && endDate) {
       q = query(q, 
